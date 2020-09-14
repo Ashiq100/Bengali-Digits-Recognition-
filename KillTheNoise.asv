@@ -1,15 +1,37 @@
-function CleanData = KillTheNoise(data,fs)
+% function CleanData = KillTheNoise(data,fs)
 
+%%
+Files = dir("database\5\*.m4a*");
+FileName = Files(1).folder + "\" + Files(1).name;
+[audio_in,audio_freq_sampl]= audioread(FileName);
+plot(audio_in(1:400));
+
+%% 
+data = audio_in;
 N = length(data);
 
 % shifting mean to 0 : yn'= yn - mean(y) 
+
+M = mean(data(1:200))
 data = data - mean(data(1:200));
+
+figure, plot(data);
 
 % pre-emphasis filter : y[n] = x[n] - 0.95 x[n-1]
 B = [1 -0.95];
 data = filter(B,1,data);
+figure, plot(data);
 
-%
+% avg energy 
+
+
+%%
+
+[max_value, max_index] = max(data);
+Eb = max_value/max_index
+Es = max_value/(N-max_index+1)
+
+%% 
 
 WINDOW_SIZE = 350;
 NO_OF_WINDOWS = floor(N/350);
@@ -31,10 +53,10 @@ for k = 1:NO_OF_WINDOWS
         max_avg_energy_window = k;
     end
 end
-THRESHOLD = max_avg_energy * 0.25;
+THRESHOLD = max_avg_energy * 0.002;
 SB = max_avg_energy_window;
 SE = max_avg_energy_window;
-total_energy = 0;
+total_enegry = 0;
 no_of_windows = 0;
 for k = max_avg_energy_window : NO_OF_WINDOWS 
     total_energy = sum(windows(k).^2) + total_energy;
@@ -56,5 +78,49 @@ for k = max_avg_energy_window : -1 : 1
     end
     SB = k;
 end
-CleanData = data((SB-1)*WINDOW_SIZE+1:SE*WINDOW_SIZE); 
-% plot(data((SB-1)*WINDOW_SIZE+1:SE*WINDOW_SIZE));
+
+plot(data((SB-1)*WINDOW_SIZE+1:SE*WINDOW_SIZE));
+
+%% 
+
+
+
+% size(windows)
+% sum_window = zeros(1, WINDOW_SIZE);
+% for k = 1:NO_OF_WINDOWS
+%     sum_window = sum_window + windows(k);
+% end
+% avg_window = sum_window / NO_OF_WINDOWS;
+
+xE = zeros(1, NO_OF_WINDOWS-1);
+for k = 1:NO_OF_WINDOWS-1
+    xE(k) = mean(windows(k+1))/mean(windows(k));
+end
+Sb = NO_OF_WINDOWS-1;
+Ss = 1;
+for k = 1:NO_OF_WINDOWS-1
+    if xE(k) > Eb
+        Sb = (k-1) * 350 + 1;
+    end
+end
+for k = NO_OF_WINDOWS-1:-1:1
+    if(1/xE(k) > Es) 
+        Ss = k * 350;
+    end
+end
+
+zero_crossing = zeros(1, N-1);
+for k = 1:N-1
+    if(data(k)/data(k+1) < 0) zero_crossing(k) = 1;
+    end
+end
+
+last_zero_crossing = N;
+for k = N-1:-1:1
+    if (zero_crossing(k) == 1) 
+        zero_crossing(k) = last_zero_crossing-k;
+        last_zero_crossing = k;
+    end
+end
+
+plot(zero_crossing);

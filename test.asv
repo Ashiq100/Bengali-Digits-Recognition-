@@ -1,0 +1,4 @@
+Files = dir("database\2\*.m4a*");
+Files(1).name
+[data fs] = audioread(Files(4).folder + "\" + Files(4).name);
+sound(data, fs);

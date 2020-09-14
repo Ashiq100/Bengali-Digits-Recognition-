@@ -3,27 +3,39 @@ close all ;
 clear all ; 
 
 load('dataBase.mat','Memo','res') ; 
-let = 5 ; 
-% disp('record now');
-% 
-% recorder = audiorecorder(48000,16,2);
-% recordblocking(recorder,2);
-% audioarray = getaudiodata(recorder);
-% 
-% disp('stop record');
-[data fs] = audioread('1(6).m4a') ; 
-%data=audioarray;
-sound(data,fs) ; 
+Let = 5;
 
-cur = kannumfcc(13,KillTheNoise(data),fs) ; 
+good = 0;
+total = 0;
 
-tot = zeros(1,let) ; 
-
-for i = 1:25
-    t = Memo{i} ; 
-    dist = my_dtw(cur,t) ;
-    tot(res(i)) = tot(res(i)) + dist ; 
+for DIGIT = 1:Let
+    dirpath = "database\" + int2str(DIGIT) + "\*.m4a*";
+    Files = dir(dirpath);
+    SZ = floor(0.8 * length(Files));
+    for k = SZ+1:length(Files)
+        total = total + 1;
+        FileName = Files(k).folder + "\" + Files(k).name;
+        [data fs] = audioread(FileName);
+%         sound(data, fs);
+%         cur = kannumfcc(13,KillTheNoise(data),fs);
+        t = KillTheNoise(data, fs);
+        cur = kannumfcc(13,t',fs);
+        tot = zeros(1,Let);
+        cnt = zeros(1,Let);
+        for i = 1:length(Memo)
+            t = Memo{i} ; 
+            dist = my_dtw(cur,t) ;
+            tot(res(i)) = tot(res(i)) + dist;
+            cnt(res(i)) = cnt(res(i)) + 1;
+        end
+        avg = tot;
+        for k = 1:Let
+            avg(k) = avg(k)/cnt(k);
+        end
+        [x digit] = min(avg);
+        if (digit == DIGIT) 
+            good = good+1;
+        end
+    end
 end
-avg = tot/5 ;
-[x digit] = min(avg) ;
-avg , digit
+Accuracy = good/total
